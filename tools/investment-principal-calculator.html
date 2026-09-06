@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>투자원금 계산기 - Multi-tools</title>
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="../index.html">&larr; 목록으로</a>
+    <h1>💰 투자원금 계산기</h1>
+    <p class="subtitle">현재가와 수익률을 입력하면 처음에 넣은 원금을 계산해줘요</p>
+
+    <div class="card">
+      <label for="currentValue">현재가 (평가금액)</label>
+      <input type="text" id="currentValue" placeholder="예: 12,000,000" inputmode="decimal" />
+      <div class="hint">현재 계좌의 평가금액을 입력하세요</div>
+
+      <label for="returnRate">수익률 (%)</label>
+      <input type="number" id="returnRate" placeholder="예: 20 (손실이면 -10)" inputmode="decimal" step="any" />
+      <div class="hint">수익 중이면 양수, 손실 중이면 음수로 입력하세요</div>
+
+      <button id="calcBtn">계산하기</button>
+
+      <div class="error" id="errorBox"></div>
+
+      <div class="result" id="resultBox">
+        <div class="label">투자원금</div>
+        <div class="value" id="principalValue">-</div>
+        <div class="breakdown" id="breakdownText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currentValueInput = document.getElementById('currentValue');
+    const returnRateInput = document.getElementById('returnRate');
+    const calcBtn = document.getElementById('calcBtn');
+    const resultBox = document.getElementById('resultBox');
+    const errorBox = document.getElementById('errorBox');
+    const principalValue = document.getElementById('principalValue');
+    const breakdownText = document.getElementById('breakdownText');
+
+    function formatWon(n) {
+      return Math.round(n).toLocaleString('ko-KR') + '원';
+    }
+
+    function formatAmountInput(value) {
+      const cleaned = value.replace(/[^0-9.]/g, '');
+      const [intRaw, ...rest] = cleaned.split('.');
+      const intPart = intRaw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      const decPart = rest.length > 0 ? '.' + rest.join('').slice(0, 2) : '';
+      return intPart + decPart;
+    }
+
+    currentValueInput.addEventListener('input', () => {
+      currentValueInput.value = formatAmountInput(currentValueInput.value);
+    });
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.add('visible');
+      resultBox.classList.remove('visible');
+    }
+
+    function calculate() {
+      const currentValue = parseFloat(currentValueInput.value.replace(/,/g, ''));
+      const returnRate = parseFloat(returnRateInput.value);
+
+      errorBox.classList.remove('visible');
+
+      if (isNaN(currentValue) || isNaN(returnRate)) {
+        showError('현재가와 수익률을 모두 입력해주세요.');
+        return;
+      }
+
+      if (currentValue < 0) {
+        showError('현재가는 0 이상이어야 합니다.');
+        return;
+      }
+
+      const divisor = 1 + returnRate / 100;
+
+      if (divisor <= 0) {
+        showError('수익률이 -100% 이하일 수는 없어요. 입력값을 확인해주세요.');
+        return;
+      }
+
+      const principal = currentValue / divisor;
+      const profit = currentValue - principal;
+
+      principalValue.textContent = formatWon(principal);
+      breakdownText.innerHTML =
+        '현재가: ' + formatWon(currentValue) + '<br />' +
+        (profit >= 0
+          ? '평가수익: +' + formatWon(profit)
+          : '평가손실: ' + formatWon(profit));
+
+      resultBox.classList.add('visible');
+    }
+
+    calcBtn.addEventListener('click', calculate);
+    [currentValueInput, returnRateInput].forEach((input) => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') calculate();
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>공연 수입 정산 계산기 - Multi-tools</title>
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="../index.html">&larr; 목록으로</a>
+    <h1>🎤 공연 수입 정산 계산기</h1>
+    <p class="subtitle">세금(3.3%)과 보험료(0.75 × 0.8%)를 반영해 세전 금액과 실수령액을 서로 계산해줘요</p>
+
+    <div class="card">
+      <div class="mode-toggle" id="modeToggle">
+        <button type="button" class="mode-btn active" data-mode="toNet">세전 → 실수령액</button>
+        <button type="button" class="mode-btn" data-mode="toGross">입금액 → 세전</button>
+      </div>
+
+      <label for="amountInput" id="amountLabel">세전 수입금</label>
+      <input type="text" id="amountInput" placeholder="예: 100,000" inputmode="decimal" />
+      <div class="hint" id="amountHint">세금(3.3%)과 보험료(0.75 × 0.8%)를 뺀 실수령액을 계산합니다</div>
+
+      <button id="calcBtn">계산하기</button>
+
+      <div class="error" id="errorBox"></div>
+
+      <div class="result" id="resultBox">
+        <div class="label" id="resultLabel">순수익 (실수령액)</div>
+        <div class="value" id="resultValue">-</div>
+        <div class="breakdown" id="breakdownText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modeToggle = document.getElementById('modeToggle');
+    const amountInput = document.getElementById('amountInput');
+    const amountLabel = document.getElementById('amountLabel');
+    const amountHint = document.getElementById('amountHint');
+    const calcBtn = document.getElementById('calcBtn');
+    const resultBox = document.getElementById('resultBox');
+    const errorBox = document.getElementById('errorBox');
+    const resultLabel = document.getElementById('resultLabel');
+    const resultValue = document.getElementById('resultValue');
+    const breakdownText = document.getElementById('breakdownText');
+
+    const TAX_RATE = 0.033;
+    const INSURANCE_RATE = 0.75 * 0.008;
+    const NET_RATE = 1 - TAX_RATE - INSURANCE_RATE; // 실수령 비율
+
+    let mode = 'toNet'; // 'toNet' | 'toGross'
+
+    const MODE_CONFIG = {
+      toNet: {
+        label: '세전 수입금',
+        placeholder: '예: 100,000',
+        hint: '세금(3.3%)과 보험료(0.75 × 0.8%)를 뺀 실수령액을 계산합니다',
+        errorMessage: '세전 수입금을 입력해주세요.',
+        resultLabel: '순수익 (실수령액)',
+      },
+      toGross: {
+        label: '입금액 (실수령액)',
+        placeholder: '예: 96,100',
+        hint: '실제로 입금받은 금액을 입력하면 세전 금액을 역산합니다',
+        errorMessage: '입금액을 입력해주세요.',
+        resultLabel: '세전 수입금',
+      },
+    };
+
+    function formatWon(n) {
+      return Math.round(n).toLocaleString('ko-KR') + '원';
+    }
+
+    function formatAmountInput(value) {
+      const cleaned = value.replace(/[^0-9.]/g, '');
+      const [intRaw, ...rest] = cleaned.split('.');
+      const intPart = intRaw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      const decPart = rest.length > 0 ? '.' + rest.join('').slice(0, 2) : '';
+      return intPart + decPart;
+    }
+
+    amountInput.addEventListener('input', () => {
+      amountInput.value = formatAmountInput(amountInput.value);
+    });
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.add('visible');
+      resultBox.classList.remove('visible');
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      const config = MODE_CONFIG[mode];
+
+      [...modeToggle.children].forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      amountLabel.textContent = config.label;
+      amountInput.placeholder = config.placeholder;
+      amountHint.textContent = config.hint;
+      resultLabel.textContent = config.resultLabel;
+
+      amountInput.value = '';
+      errorBox.classList.remove('visible');
+      resultBox.classList.remove('visible');
+    }
+
+    modeToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('.mode-btn');
+      if (!btn) return;
+      setMode(btn.dataset.mode);
+    });
+
+    function calculate() {
+      const amount = parseFloat(amountInput.value.replace(/,/g, ''));
+      const config = MODE_CONFIG[mode];
+
+      errorBox.classList.remove('visible');
+
+      if (isNaN(amount)) {
+        showError(config.errorMessage);
+        return;
+      }
+
+      if (amount < 0) {
+        showError('금액은 0 이상이어야 합니다.');
+        return;
+      }
+
+      const gross = mode === 'toNet' ? amount : amount / NET_RATE;
+      const tax = gross * TAX_RATE;
+      const insurance = gross * INSURANCE_RATE;
+      const totalDeduction = tax + insurance;
+      const net = gross - totalDeduction;
+
+      resultValue.textContent = formatWon(mode === 'toNet' ? net : gross);
+      breakdownText.innerHTML =
+        '세전 수입금: ' + formatWon(gross) + '<br />' +
+        '세금 (3.3%): -' + formatWon(tax) + '<br />' +
+        '보험료 (0.75 × 0.8%): -' + formatWon(insurance) + '<br />' +
+        '실수령액: ' + formatWon(net);
+
+      resultBox.classList.add('visible');
+    }
+
+    calcBtn.addEventListener('click', calculate);
+    amountInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') calculate();
+    });
+  </script>
+</body>
+</html>
