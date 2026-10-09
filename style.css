@@ -25,7 +25,11 @@ body {
 
 .page {
   width: 100%;
-  max-width: 560px;
+  max-width: 480px;
+}
+
+.page.wide {
+  max-width: 720px;
 }
 
 h1 {
@@ -57,13 +61,20 @@ h1 {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+@media (max-width: 380px) {
+  .tool-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tool-link {
   display: block;
+  height: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -227,17 +238,6 @@ button:hover {
   margin: 28px 0 10px;
 }
 
-.project-item {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.project-item .tool-link {
-  flex: 1;
-  min-width: 0;
-}
-
 .tool-link.disabled {
   opacity: 0.55;
   cursor: default;
@@ -249,21 +249,4 @@ button:hover {
 
 .tool-link.disabled:active {
   transform: none;
-}
-
-.repo-link {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  text-decoration: none;
-}
-
-.repo-link:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
