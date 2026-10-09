@@ -25,10 +25,11 @@ body {
 
 .page {
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
 }
 
 h1 {
+  margin-top: 0;
   font-size: 1.6rem;
   margin-bottom: 4px;
 }
@@ -218,4 +219,51 @@ button:hover {
 
 .error.visible {
   display: block;
+}
+
+.section-title {
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 28px 0 10px;
+}
+
+.project-item {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.project-item .tool-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-link.disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tool-link.disabled:hover {
+  border-color: var(--border);
+}
+
+.tool-link.disabled:active {
+  transform: none;
+}
+
+.repo-link {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.repo-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
