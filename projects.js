@@ -73,20 +73,6 @@ const PROJECTS = [
     repo: "https://github.com/ehdqkd616/Email-spam-cleaner",
   },
   {
-    icon: "📖",
-    name: "세광 eBook 1",
-    desc: "세광 전자책 프로젝트 1",
-    url: "https://segwang-ebook-1.hotgarlic.dedyn.io",
-    repo: "https://github.com/ehdqkd616/Segwang_eBook_Project1",
-  },
-  {
-    icon: "📗",
-    name: "세광 eBook 2",
-    desc: "세광 전자책 프로젝트 2",
-    url: "https://segwang-ebook-2.hotgarlic.dedyn.io",
-    repo: "https://github.com/ehdqkd616/Segwang_eBook_Project2",
-  },
-  {
     icon: "🧪",
     name: "RVC Learning",
     desc: "RVC 보이스 변환 학습용 저장소",
