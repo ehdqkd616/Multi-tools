@@ -20,6 +20,12 @@ const PROJECTS = [
     url: "https://music.hotgarlic.dedyn.io",
   },
   {
+    icon: "📖",
+    name: "Ebook Maker",
+    desc: "주제나 파일로 AI 전자책을 만들고 플립북으로 공유해요",
+    url: "https://ebook-maker.hotgarlic.dedyn.io",
+  },
+  {
     icon: "🖼️",
     name: "이미지 스튜디오",
     desc: "AI 업스케일, 크기 조절, 용량 줄이기",
@@ -66,6 +72,12 @@ const PROJECTS = [
     name: "메일 스팸 정리기",
     desc: "Gmail·네이버·네이트 메일의 광고/스팸 자동 정리",
     url: "https://mail.hotgarlic.dedyn.io",
+  },
+  {
+    icon: "🔒",
+    name: "VPN",
+    desc: "회원제 WireGuard VPN — 승인 후 기기별 접속 설정 발급",
+    url: "https://vpn.hotgarlic.dedyn.io",
   },
   {
     icon: "🧪",
