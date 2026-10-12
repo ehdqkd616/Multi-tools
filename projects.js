@@ -2,6 +2,12 @@
 // url: 배포된 사이트 주소 — https://<서브도메인>.hotgarlic.dedyn.io (비워두면 "주소 미등록"으로 표시)
 const PROJECTS = [
   {
+    icon: "🗣️",
+    name: "AI TTS",
+    desc: "문장을 원어민 억양으로 읽어 주고 MP3/WAV로 내려받아요",
+    url: "https://ai-tts.hotgarlic.dedyn.io",
+  },
+  {
     icon: "🎙️",
     name: "AI Voice Cover",
     desc: "음원과 보이스 모델로 AI 커버곡을 자동으로 만들어줘요",
