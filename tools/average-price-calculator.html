@@ -6,6 +6,10 @@
 <title>주식 평단가 계산기 - Multi-tools</title>
 <link rel="stylesheet" href="../style.css" />
 <style>
+  .mode-btn {
+    margin-top: 0;
+  }
+
   .buy-header,
   .buy-row {
     display: grid;
@@ -74,39 +78,58 @@
   <div class="page">
     <a class="back-link" href="../index.html">&larr; 목록으로</a>
     <h1>📈 주식 평단가 계산기</h1>
-    <p class="subtitle">보유 주식에 추가 매수(물타기·불타기)하면 평단가가 얼마가 되는지 계산해줘요</p>
+    <p class="subtitle">추가 매수(물타기·불타기) 후 평단가와, 목표 평단가까지 필요한 수량을 계산해줘요</p>
 
     <div class="card">
+      <div class="mode-toggle" id="modeToggle">
+        <button type="button" class="mode-btn active" data-mode="average">평단가 계산</button>
+        <button type="button" class="mode-btn" data-mode="target">목표 평단가 계산</button>
+      </div>
+
       <label for="holdPrice">현재 평단가</label>
       <input type="text" id="holdPrice" placeholder="예: 72,000" inputmode="decimal" />
 
       <label for="holdQty">보유 수량</label>
       <input type="text" id="holdQty" placeholder="예: 10" inputmode="decimal" />
-      <div class="hint">처음 매수라면 두 칸 모두 비워두세요</div>
+      <div class="hint" id="holdHint">처음 매수라면 두 칸 모두 비워두세요</div>
 
-      <hr class="divider" />
+      <div id="targetSection" hidden>
+        <hr class="divider" />
 
-      <label>추가 매수</label>
-      <div class="buy-header">
-        <span>매수가</span>
-        <span>수량</span>
-        <span></span>
+        <label for="buyPrice">매수 예정가</label>
+        <input type="text" id="buyPrice" placeholder="예: 60,000" inputmode="decimal" />
+        <div class="hint">추가로 살 가격 (보통 현재가)</div>
+
+        <label for="targetPrice">목표 평단가</label>
+        <input type="text" id="targetPrice" placeholder="예: 65,000" inputmode="decimal" />
+        <div class="hint">현재 평단가와 매수 예정가 사이의 값이어야 해요</div>
       </div>
-      <div id="buyList"></div>
-      <button type="button" class="add-btn" id="addBtn">+ 매수 추가</button>
 
-      <hr class="divider" />
-
-      <label for="currentPrice">현재가 (선택)</label>
-      <input type="text" id="currentPrice" placeholder="예: 65,000" inputmode="decimal" />
-      <div class="hint">입력하면 평가손익과 수익률도 함께 보여줘요</div>
+      <div id="averageSection">
+        <hr class="divider" />
+  
+        <label>추가 매수</label>
+        <div class="buy-header">
+          <span>매수가</span>
+          <span>수량</span>
+          <span></span>
+        </div>
+        <div id="buyList"></div>
+        <button type="button" class="add-btn" id="addBtn">+ 매수 추가</button>
+  
+        <hr class="divider" />
+  
+        <label for="currentPrice">현재가 (선택)</label>
+        <input type="text" id="currentPrice" placeholder="예: 65,000" inputmode="decimal" />
+        <div class="hint">입력하면 평가손익과 수익률도 함께 보여줘요</div>
+      </div>
 
       <button id="calcBtn">계산하기</button>
 
       <div class="error" id="errorBox"></div>
 
       <div class="result" id="resultBox">
-        <div class="label">평단가</div>
+        <div class="label" id="resultLabel">평단가</div>
         <div class="value" id="avgValue">-</div>
         <div class="breakdown" id="breakdownText"></div>
       </div>
@@ -117,6 +140,13 @@
     const holdPriceInput = document.getElementById('holdPrice');
     const holdQtyInput = document.getElementById('holdQty');
     const currentPriceInput = document.getElementById('currentPrice');
+    const buyPriceInput = document.getElementById('buyPrice');
+    const targetPriceInput = document.getElementById('targetPrice');
+    const modeToggle = document.getElementById('modeToggle');
+    const holdHint = document.getElementById('holdHint');
+    const averageSection = document.getElementById('averageSection');
+    const targetSection = document.getElementById('targetSection');
+    const resultLabel = document.getElementById('resultLabel');
     const buyList = document.getElementById('buyList');
     const addBtn = document.getElementById('addBtn');
     const calcBtn = document.getElementById('calcBtn');
@@ -195,8 +225,102 @@
       resultBox.classList.remove('visible');
     }
 
+    let mode = 'average'; // 'average' | 'target'
+
+    const MODE_CONFIG = {
+      average: {
+        holdHint: '처음 매수라면 두 칸 모두 비워두세요',
+        resultLabel: '평단가',
+      },
+      target: {
+        holdHint: '지금 보유 중인 평단가와 수량을 입력하세요',
+        resultLabel: '추가로 사야 할 수량',
+      },
+    };
+
+    function setMode(next) {
+      mode = next;
+      const config = MODE_CONFIG[mode];
+
+      modeToggle.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      averageSection.hidden = mode !== 'average';
+      targetSection.hidden = mode !== 'target';
+      holdHint.textContent = config.holdHint;
+      resultLabel.textContent = config.resultLabel;
+
+      errorBox.classList.remove('visible');
+      resultBox.classList.remove('visible');
+    }
+
     function calculate() {
       errorBox.classList.remove('visible');
+      if (mode === 'target') {
+        calculateTarget();
+      } else {
+        calculateAverage();
+      }
+    }
+
+    // 목표 평단가 T까지 맞추려면 가격 P에 몇 주를 더 사야 하는지
+    // (A × Q + P × n) / (Q + n) = T  →  n = Q × (A − T) / (T − P)
+    function calculateTarget() {
+      const holdPrice = readNum(holdPriceInput);
+      const holdQty = readNum(holdQtyInput);
+      const buyPrice = readNum(buyPriceInput);
+      const targetPrice = readNum(targetPriceInput);
+
+      if ([holdPrice, holdQty, buyPrice, targetPrice].some((n) => n === null)) {
+        showError('현재 평단가, 보유 수량, 매수 예정가, 목표 평단가를 모두 입력해주세요.');
+        return;
+      }
+      if ([holdPrice, holdQty, buyPrice, targetPrice].some((n) => isNaN(n) || n <= 0)) {
+        showError('모든 값은 0보다 큰 숫자여야 합니다.');
+        return;
+      }
+      if (targetPrice === holdPrice) {
+        showError('이미 목표 평단가예요. 더 살 필요가 없어요.');
+        return;
+      }
+      if (buyPrice === holdPrice) {
+        showError('매수 예정가가 현재 평단가와 같으면 몇 주를 사도 평단가가 그대로예요.');
+        return;
+      }
+      // 평단가는 기존 평단가와 매수가 사이에서만 움직임
+      if ((targetPrice - holdPrice) * (targetPrice - buyPrice) >= 0) {
+        showError(
+          '목표 평단가는 현재 평단가(' + formatNum(holdPrice) + ')와 매수 예정가(' +
+          formatNum(buyPrice) + ') 사이여야 해요.'
+        );
+        return;
+      }
+
+      const exactQty = (holdQty * (holdPrice - targetPrice)) / (targetPrice - buyPrice);
+      // 부동소수 오차로 1주가 더 붙지 않도록 살짝 깎고 올림
+      const wholeQty = Math.ceil(exactQty - 1e-9);
+      const buyCost = buyPrice * wholeQty;
+      const totalQty = holdQty + wholeQty;
+      const totalCost = holdPrice * holdQty + buyCost;
+      const newAvg = totalCost / totalQty;
+
+      let html =
+        '필요 매수금액: ' + formatNum(buyCost) + '<br />' +
+        '매수 후 평단가: ' + formatNum(holdPrice) + ' → ' + formatNum(newAvg) + '<br />' +
+        '매수 후 총 수량: ' + formatNum(totalQty) + '주<br />' +
+        '매수 후 총 매입금액: ' + formatNum(totalCost);
+
+      if (wholeQty !== exactQty) {
+        html += '<br /><br />소수점 매수라면 ' + formatNum(exactQty) + '주 (' +
+          formatNum(buyPrice * exactQty) + ')로 목표에 딱 맞출 수 있어요';
+      }
+
+      avgValue.textContent = formatNum(wholeQty) + '주';
+      breakdownText.innerHTML = html;
+      resultBox.classList.add('visible');
+    }
+
+    function calculateAverage() {
 
       const lots = [];
 
@@ -273,7 +397,11 @@
 
     addBtn.addEventListener('click', () => addBuyRow().focus());
     calcBtn.addEventListener('click', calculate);
-    [holdPriceInput, holdQtyInput, currentPriceInput].forEach(bindInput);
+    [holdPriceInput, holdQtyInput, currentPriceInput, buyPriceInput, targetPriceInput].forEach(bindInput);
+    modeToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('.mode-btn');
+      if (btn) setMode(btn.dataset.mode);
+    });
 
     addBuyRow();
   </script>
