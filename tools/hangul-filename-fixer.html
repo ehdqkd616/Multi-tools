@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>한글 자모 분리 교정기 - Multi-tools</title>
+<link rel="stylesheet" href="../style.css?v=3" />
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="../index.html">&larr; 목록으로</a>
+    <h1>🔤 한글 자모 분리 교정기</h1>
+    <p class="subtitle">맥에서 저장해 자모가 풀어진 한글 이름을 붙여넣으면 바로 고쳐줘요</p>
+
+    <div class="card">
+      <div class="field-head">
+        <label for="sourceInput">붙여넣기</label>
+        <button type="button" class="text-btn" id="clearBtn" hidden>지우기</button>
+      </div>
+      <textarea id="sourceInput" class="text-panel" rows="3" placeholder="깨진 파일 이름을 붙여넣으세요"></textarea>
+
+      <div class="field-head">
+        <label for="resultOutput">교정 결과</label>
+        <span class="badge" id="statusBadge" hidden></span>
+      </div>
+      <textarea id="resultOutput" class="text-panel" rows="3" readonly placeholder="여기에 결과가 나와요"></textarea>
+
+      <button type="button" id="copyBtn" disabled>복사하기</button>
+    </div>
+
+    <p class="footnote">💡 탐색기에서 파일 선택 → <kbd>F2</kbd> → <kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd> 후 붙여넣기. 여러 줄도 한 번에 돼요.</p>
+  </div>
+
+  <script>
+    const sourceInput = document.getElementById('sourceInput');
+    const resultOutput = document.getElementById('resultOutput');
+    const statusBadge = document.getElementById('statusBadge');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 내용에 맞춰 높이를 늘린다
+    function autoGrow(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 2 + 'px';
+    }
+
+    // 맥은 한글을 자모 단위(NFD)로 저장하므로, 완성형(NFC)으로 다시 합친다
+    function convert() {
+      const source = sourceInput.value;
+      const fixed = source.normalize('NFC');
+      resultOutput.value = fixed;
+
+      const merged = source.length - fixed.length;
+      statusBadge.hidden = !source;
+      statusBadge.classList.toggle('ok', merged > 0);
+      statusBadge.textContent = merged > 0 ? `${merged}자 교정됨` : '고칠 부분 없음';
+
+      clearBtn.hidden = !source;
+      copyBtn.disabled = !fixed;
+      copyBtn.textContent = '복사하기';
+
+      autoGrow(sourceInput);
+      autoGrow(resultOutput);
+    }
+
+    sourceInput.addEventListener('input', convert);
+
+    clearBtn.addEventListener('click', () => {
+      sourceInput.value = '';
+      convert();
+      sourceInput.focus();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(resultOutput.value);
+      } catch {
+        // clipboard API를 못 쓰는 환경
+        resultOutput.select();
+        document.execCommand('copy');
+      }
+      copyBtn.textContent = '복사됐어요 ✓';
+    });
+  </script>
+</body>
+</html>
