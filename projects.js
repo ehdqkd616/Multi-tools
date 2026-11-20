@@ -20,6 +20,18 @@ const PROJECTS = [
     url: "https://music.hotgarlic.dedyn.io",
   },
   {
+    icon: "🎬",
+    name: "Shorts Studio",
+    desc: "블로그 글·주제로 대본, 내 목소리 내레이션, 렌더까지 하는 쇼츠 제작기",
+    url: "https://shorts-maker.hotgarlic.dedyn.io",
+  },
+  {
+    icon: "🎤",
+    name: "Cover Maker",
+    desc: "커버 영상에 가사 자막을 자동 싱크하고 MP4·SRT로 내보내요",
+    url: "https://cover-maker.hotgarlic.dedyn.io",
+  },
+  {
     icon: "📖",
     name: "Ebook Maker",
     desc: "주제나 파일로 AI 전자책을 만들고 플립북으로 공유해요",
