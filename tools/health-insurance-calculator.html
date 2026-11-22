@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>건강보험료 계산기 - Multi-tools</title>
+<link rel="stylesheet" href="../style.css?v=4" />
+</head>
+<body>
+  <div class="page">
+    <a class="back-link" href="../index.html">&larr; 목록으로</a>
+    <h1>🏥 건강보험료 계산기</h1>
+    <p class="subtitle">월 소득을 입력하면 2026년 기준 건강보험료와 장기요양보험료를 계산해줘요</p>
+
+    <div class="card">
+      <div class="mode-toggle" id="modeToggle">
+        <button type="button" class="mode-btn active" data-mode="employee">직장가입자</button>
+        <button type="button" class="mode-btn" data-mode="regional">지역가입자</button>
+      </div>
+
+      <label for="incomeInput" id="incomeLabel">보수월액 (월급)</label>
+      <input type="text" id="incomeInput" placeholder="예: 3,000,000" inputmode="numeric" />
+      <div class="hint" id="incomeHint">비과세 소득을 뺀 월 급여를 입력하세요</div>
+
+      <button id="calcBtn">계산하기</button>
+
+      <div class="error" id="errorBox"></div>
+
+      <div class="result" id="resultBox">
+        <div class="label" id="resultLabel">월 납부액 (본인 부담)</div>
+        <div class="value" id="resultValue">-</div>
+        <div class="breakdown" id="breakdownText"></div>
+      </div>
+    </div>
+
+    <p class="footnote" id="footnote"></p>
+  </div>
+
+  <script>
+    const modeToggle = document.getElementById('modeToggle');
+    const incomeInput = document.getElementById('incomeInput');
+    const incomeLabel = document.getElementById('incomeLabel');
+    const incomeHint = document.getElementById('incomeHint');
+    const calcBtn = document.getElementById('calcBtn');
+    const resultBox = document.getElementById('resultBox');
+    const errorBox = document.getElementById('errorBox');
+    const resultLabel = document.getElementById('resultLabel');
+    const resultValue = document.getElementById('resultValue');
+    const breakdownText = document.getElementById('breakdownText');
+    const footnote = document.getElementById('footnote');
+
+    // 2026년 기준
+    const HEALTH_RATE = 0.0719;        // 건강보험료율
+    const LTC_RATE = 0.009448;         // 장기요양보험료율 (소득 대비)
+    const EMPLOYEE_MIN = 20160;        // 직장 보수월액보험료 하한 (전체)
+    const EMPLOYEE_MAX = 9183480;      // 직장 보수월액보험료 상한 (전체)
+    const REGIONAL_MIN = 20160;        // 지역 월별 보험료 하한
+    const REGIONAL_MAX = 4591740;      // 지역 소득월액보험료 상한
+
+    let mode = 'employee'; // 'employee' | 'regional'
+
+    const MODE_CONFIG = {
+      employee: {
+        label: '보수월액 (월급)',
+        placeholder: '예: 3,000,000',
+        hint: '비과세 소득을 뺀 월 급여를 입력하세요',
+        errorMessage: '보수월액을 입력해주세요.',
+        resultLabel: '월 납부액 (본인 부담)',
+        footnote: '💡 직장가입자는 보험료를 회사와 절반씩 나눠 내요. 2026년 건강보험료율 7.19%, 장기요양보험료율 0.9448% 기준이에요.',
+      },
+      regional: {
+        label: '소득월액 (월 소득)',
+        placeholder: '예: 2,500,000',
+        hint: '사업·이자·배당·연금 등 연간 소득을 12로 나눈 금액을 입력하세요',
+        errorMessage: '소득월액을 입력해주세요.',
+        resultLabel: '월 납부액 (소득분)',
+        footnote: '💡 지역가입자는 보험료 전액을 본인이 내요. 실제 고지액에는 재산(주택·토지 등)분 보험료가 더해지므로, 여기서는 소득분만 계산해요.',
+      },
+    };
+
+    // 보험료는 10원 미만 절사
+    function floor10(n) {
+      return Math.floor(n / 10) * 10;
+    }
+
+    function clamp(n, min, max) {
+      return Math.min(Math.max(n, min), max);
+    }
+
+    function formatWon(n) {
+      return Math.round(n).toLocaleString('ko-KR') + '원';
+    }
+
+    function formatAmountInput(value) {
+      const digits = value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+      return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    incomeInput.addEventListener('input', () => {
+      incomeInput.value = formatAmountInput(incomeInput.value);
+    });
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.add('visible');
+      resultBox.classList.remove('visible');
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      const config = MODE_CONFIG[mode];
+
+      [...modeToggle.children].forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      incomeLabel.textContent = config.label;
+      incomeInput.placeholder = config.placeholder;
+      incomeHint.textContent = config.hint;
+      resultLabel.textContent = config.resultLabel;
+      footnote.textContent = config.footnote;
+
+      incomeInput.value = '';
+      errorBox.classList.remove('visible');
+      resultBox.classList.remove('visible');
+    }
+
+    modeToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('.mode-btn');
+      if (!btn) return;
+      setMode(btn.dataset.mode);
+    });
+
+    function calcEmployee(income) {
+      const raw = income * HEALTH_RATE;
+      const limit = raw < EMPLOYEE_MIN ? ' (하한 적용)' : raw > EMPLOYEE_MAX ? ' (상한 적용)' : '';
+      const totalHealth = floor10(clamp(raw, EMPLOYEE_MIN, EMPLOYEE_MAX));
+      const health = floor10(totalHealth / 2);
+      const ltc = floor10(health * (LTC_RATE / HEALTH_RATE));
+
+      resultValue.textContent = formatWon(health + ltc);
+      breakdownText.innerHTML =
+        '건강보험료 (3.595%): ' + formatWon(health) + limit + '<br />' +
+        '장기요양보험료: ' + formatWon(ltc) + '<br />' +
+        '회사 부담분: ' + formatWon(health + ltc) + '<br />' +
+        '합계 (본인 + 회사): ' + formatWon((health + ltc) * 2);
+    }
+
+    function calcRegional(income) {
+      const raw = income * HEALTH_RATE;
+      const limit = raw < REGIONAL_MIN ? ' (최저보험료 적용)' : raw > REGIONAL_MAX ? ' (상한 적용)' : '';
+      const health = floor10(clamp(raw, REGIONAL_MIN, REGIONAL_MAX));
+      const ltc = floor10(health * (LTC_RATE / HEALTH_RATE));
+
+      resultValue.textContent = formatWon(health + ltc);
+      breakdownText.innerHTML =
+        '건강보험료 (7.19%): ' + formatWon(health) + limit + '<br />' +
+        '장기요양보험료: ' + formatWon(ltc) + '<br />' +
+        '연간 납부액: ' + formatWon((health + ltc) * 12);
+    }
+
+    function calculate() {
+      const income = parseFloat(incomeInput.value.replace(/,/g, ''));
+
+      errorBox.classList.remove('visible');
+
+      if (isNaN(income)) {
+        showError(MODE_CONFIG[mode].errorMessage);
+        return;
+      }
+
+      if (mode === 'employee') calcEmployee(income);
+      else calcRegional(income);
+
+      resultBox.classList.add('visible');
+    }
+
+    calcBtn.addEventListener('click', calculate);
+    incomeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') calculate();
+    });
+
+    setMode('employee');
+  </script>
+</body>
+</html>

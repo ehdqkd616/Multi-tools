@@ -118,6 +118,7 @@ h1 {
 
 .mode-btn {
   flex: 1;
+  margin-top: 0;
   padding: 9px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
