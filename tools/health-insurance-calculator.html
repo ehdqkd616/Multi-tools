@@ -10,7 +10,7 @@
   <div class="page">
     <a class="back-link" href="../index.html">&larr; 목록으로</a>
     <h1>🏥 건강보험료 계산기</h1>
-    <p class="subtitle">월 소득을 입력하면 2026년 기준 건강보험료와 장기요양보험료를 계산해줘요</p>
+    <p class="subtitle">연 소득을 입력하면 2026년 기준 건강보험료와 장기요양보험료를 계산해줘요</p>
 
     <div class="card">
       <div class="mode-toggle" id="modeToggle">
@@ -61,18 +61,18 @@
 
     const MODE_CONFIG = {
       employee: {
-        label: '보수월액 (월급)',
-        placeholder: '예: 3,000,000',
-        hint: '비과세 소득을 뺀 월 급여를 입력하세요',
-        errorMessage: '보수월액을 입력해주세요.',
+        label: '연봉 (연간 보수)',
+        placeholder: '예: 36,000,000',
+        hint: '비과세 소득을 뺀 연간 급여를 입력하세요. 12로 나눈 보수월액으로 계산해요',
+        errorMessage: '연봉을 입력해주세요.',
         resultLabel: '월 납부액 (본인 부담)',
         footnote: '💡 직장가입자는 보험료를 회사와 절반씩 나눠 내요. 2026년 건강보험료율 7.19%, 장기요양보험료율 0.9448% 기준이에요.',
       },
       regional: {
-        label: '소득월액 (월 소득)',
-        placeholder: '예: 2,500,000',
-        hint: '사업·이자·배당·연금 등 연간 소득을 12로 나눈 금액을 입력하세요',
-        errorMessage: '소득월액을 입력해주세요.',
+        label: '연 소득',
+        placeholder: '예: 30,000,000',
+        hint: '사업·이자·배당·연금 등 연간 소득을 입력하세요. 12로 나눈 소득월액으로 계산해요',
+        errorMessage: '연 소득을 입력해주세요.',
         resultLabel: '월 납부액 (소득분)',
         footnote: '💡 지역가입자는 보험료 전액을 본인이 내요. 실제 고지액에는 재산(주택·토지 등)분 보험료가 더해지므로, 여기서는 소득분만 계산해요.',
       },
@@ -140,10 +140,12 @@
 
       resultValue.textContent = formatWon(health + ltc);
       breakdownText.innerHTML =
+        '보수월액: ' + formatWon(income) + '<br />' +
         '건강보험료 (3.595%): ' + formatWon(health) + limit + '<br />' +
         '장기요양보험료: ' + formatWon(ltc) + '<br />' +
         '회사 부담분: ' + formatWon(health + ltc) + '<br />' +
-        '합계 (본인 + 회사): ' + formatWon((health + ltc) * 2);
+        '합계 (본인 + 회사): ' + formatWon((health + ltc) * 2) + '<br />' +
+        '연간 본인 부담액: ' + formatWon((health + ltc) * 12);
     }
 
     function calcRegional(income) {
@@ -154,17 +156,19 @@
 
       resultValue.textContent = formatWon(health + ltc);
       breakdownText.innerHTML =
+        '소득월액: ' + formatWon(income) + '<br />' +
         '건강보험료 (7.19%): ' + formatWon(health) + limit + '<br />' +
         '장기요양보험료: ' + formatWon(ltc) + '<br />' +
         '연간 납부액: ' + formatWon((health + ltc) * 12);
     }
 
     function calculate() {
-      const income = parseFloat(incomeInput.value.replace(/,/g, ''));
+      const annual = parseFloat(incomeInput.value.replace(/,/g, ''));
+      const income = annual / 12; // 월 기준 금액
 
       errorBox.classList.remove('visible');
 
-      if (isNaN(income)) {
+      if (isNaN(annual)) {
         showError(MODE_CONFIG[mode].errorMessage);
         return;
       }
