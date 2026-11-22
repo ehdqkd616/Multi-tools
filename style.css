@@ -336,3 +336,7 @@ kbd {
   border-radius: 4px;
   background: var(--card-bg);
 }
+
+.field-group label:first-of-type {
+  margin-top: 18px;
+}
